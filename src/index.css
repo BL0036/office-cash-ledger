@@ -1,0 +1,732 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Office Daily Cash Ledger — design tokens
+   "Modern Office Ledger / Modern Desktop Cashbook"
+   A calm, professional cashbook aesthetic: deep ledger-navy for
+   structure and trust, a restrained teal for cash-in / positive
+   movement, muted brick-red reserved for cash-out emphasis and
+   errors, and a cool paper-white canvas instead of stark white.
+   ============================================================ */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Canvas & surfaces */
+  --color-canvas: #f3f5f8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f7fa;
+  --color-surface-sunken: #eef1f6;
+
+  /* Structure / hairlines */
+  --color-line-100: #eef1f6;
+  --color-line-200: #e2e7ef;
+  --color-line-300: #cbd4e1;
+
+  /* Ink (text) — cool slate-navy, never pure black */
+  --color-ink-900: #0f1e33;
+  --color-ink-700: #33455c;
+  --color-ink-500: #647184;
+  --color-ink-400: #8e99a8;
+  --color-ink-300: #b7bfcb;
+
+  /* Primary — ledger navy/indigo */
+  --color-primary-50: #eef3fa;
+  --color-primary-100: #dbe6f3;
+  --color-primary-200: #b3c8e3;
+  --color-primary-300: #82a4cd;
+  --color-primary-400: #4f7cb0;
+  --color-primary-500: #2f5f94;
+  --color-primary-600: #1f4a78;
+  --color-primary-700: #163a61;
+  --color-primary-800: #112c4a;
+  --color-primary-900: #0c2038;
+
+  /* Teal — cash-in / positive movement */
+  --color-teal-50: #e9f6f3;
+  --color-teal-100: #cdeae3;
+  --color-teal-500: #16967f;
+  --color-teal-600: #0e7c69;
+  --color-teal-700: #0a6355;
+
+  /* Brick / danger — cash-out emphasis, errors, destructive */
+  --color-brick-50: #fbecea;
+  --color-brick-100: #f5d3ce;
+  --color-brick-500: #ba4a3a;
+  --color-brick-600: #a53a2b;
+  --color-brick-700: #862d21;
+
+  /* Amber — warnings / budget alerts */
+  --color-amber-50: #fbf2e2;
+  --color-amber-100: #f4e0b8;
+  --color-amber-600: #9c6c1f;
+  --color-amber-700: #7d5716;
+
+  --radius-card: 0.875rem;
+
+  /* ---- Redesign Step 2: radius scale ----
+     --radius-card (above) is kept exactly as-is, unrenamed, since every
+     existing .card use already depends on that exact custom-property
+     name. The three below are new NAMED tokens for values that were
+     already in use as bare literals scattered across .btn/.field/.pill —
+     each token's value matches its pre-existing literal exactly, so
+     applying it below is a value-preserving refactor, not a visual
+     change. */
+  --radius-sm: 0.4rem;   /* was hardcoded on .btn-sm */
+  --radius-md: 0.5rem;   /* was hardcoded on .btn, .field */
+  --radius-pill: 999px;  /* was hardcoded on .pill */
+
+  /* ---- Redesign Step 2: elevation (shadow) scale ----
+     A restrained, NEUTRAL (ink-based, not brand-colored) elevation scale
+     for structural surfaces — cards, and later dropdown/popover/tooltip
+     surfaces per Step 2's control specs. --shadow-xs/--shadow-md below
+     are copied byte-for-byte from .card's and .card-hover:hover's own
+     existing rgba() literals, so applying them there is value-preserving,
+     not a visual change. --shadow-sm/--shadow-lg fill out the scale for
+     future use (e.g. a dropdown-menu or tooltip spec) and are not yet
+     applied anywhere.
+     Deliberately EXCLUDED from this scale: the three solid buttons'
+     (.btn-primary/.btn-teal/.btn-brick) own :hover shadows. Those are
+     intentionally tinted to each button's own color (a subtle colored
+     glow, not a neutral drop shadow) — collapsing them into one neutral
+     token would be a real visual change, not a refactor, so they're left
+     exactly as they are; see the comment above them.
+     Also deliberately NOT touched: .modal-panel's own shadow — left
+     completely untouched in this phase, see the print-CSS/modal note at
+     the bottom of this file. */
+  --shadow-xs: 0 1px 2px rgba(15, 30, 51, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 30, 51, 0.06);
+  --shadow-md: 0 4px 14px rgba(15, 30, 51, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 30, 51, 0.14);
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--color-ink-900);
+    -webkit-font-smoothing: antialiased;
+    /* v1.0 release polish: a barely-visible dimensional wash instead of a
+       flat fill — a soft cool-indigo glow anchored top-left, fading to
+       plain canvas by the time it reaches the content. Kept extremely
+       subtle (low-alpha, no visible band) and completely static: no
+       animation, so it never competes with data entry. */
+    background-color: var(--color-canvas);
+    background-image:
+      radial-gradient(ellipse 1100px 700px at 8% -8%, rgba(31, 74, 120, 0.05), transparent 55%),
+      radial-gradient(ellipse 900px 600px at 100% 0%, rgba(14, 124, 105, 0.03), transparent 50%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  ::selection {
+    background: var(--color-primary-100);
+  }
+
+  /* Amounts throughout the app use tabular figures so columns of
+     rupee values line up predictably. */
+  .figures {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Respect reduced-motion: collapse every transition/animation this file
+     defines to near-zero rather than removing them selectively — simplest
+     way to guarantee nothing here fights a user's OS-level preference. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* ---- Surfaces ---- */
+  .card {
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-200);
+    box-shadow: var(--shadow-xs);
+    transition: box-shadow 160ms ease, border-color 160ms ease;
+  }
+  .card-pad {
+    padding: 1rem;
+  }
+  /* Opt-in — only for cards that are themselves an actionable/clickable
+     unit (e.g. a staff/vehicle list entry), not every card on the page. */
+  .card-hover {
+    cursor: pointer;
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-line-300);
+  }
+  .panel-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-ink-700);
+    letter-spacing: -0.01em;
+  }
+  .panel-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-ink-500);
+  }
+
+  /* ---- Redesign Step 2: typography scale ----
+     Documents the app's own typographic tiers as named, reusable classes.
+     SPECS ONLY in this phase — nothing below is applied to Dashboard,
+     Daily Ledger, Fast Entry, Staff, Vehicles, Institutions, Reports, or
+     Settings screens yet (that rollout is Steps 3–5); existing usages of
+     .panel-title/.panel-label/.field-label/.field-hint are UNCHANGED.
+
+     Several tiers already existed under other names before this phase —
+     kept exactly as-is rather than renamed, since renaming would mean
+     touching every screen that already uses them:
+       - "section title"  → .panel-title   (unchanged, above)
+       - "metadata"        → .panel-label   (unchanged, above)
+       - "label"           → .field-label   (unchanged, below)
+       - "helper / error"  → .field-hint    (unchanged, below)
+
+     The four new classes below fill the remaining tiers. Each is written
+     to match an exact, already-repeated ad hoc Tailwind-utility pattern
+     found during the Step 1 audit, so adopting it later is a like-for-
+     like swap, not a visual change:
+       - .text-page-title matches the verbatim `text-xl font-semibold
+         text-ink-900 tracking-tight` h1 pattern repeated in
+         DashboardView.tsx, ReportsView.tsx and DiariesView.tsx.
+       - .text-value-primary matches DashboardView.tsx's own big balance
+         figure (`text-3xl font-bold ... figures tracking-tight`).
+       - .text-value-secondary matches the smaller `text-lg font-semibold
+         ... figures` figures used alongside it.
+       - .text-card-title and .text-body/.text-secondary/.text-metadata
+         are new, conservative in-between steps (no exact prior ad hoc
+         match found) sized to sit logically between the tiers above,
+         for a later phase's own judgement call on where to use them. */
+  .text-page-title {
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-ink-900);
+  }
+  .text-card-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-ink-900);
+  }
+  .text-value-primary {
+    font-size: 1.875rem; /* text-3xl */
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .text-value-secondary {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600;
+  }
+  .text-body {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--color-ink-900);
+  }
+  .text-secondary {
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--color-ink-500);
+  }
+  .text-metadata {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: var(--color-ink-400);
+  }
+  /* Nepali/BS date text (Devanagari digits + month names) needs more
+     line-height headroom than Latin text at the same font-size —
+     conjuncts and matras extend further above/below the baseline, and
+     DateNav.tsx currently renders BS dates at plain `text-sm` with no
+     explicit line-height. Not applied anywhere yet (out of scope this
+     phase); available for Steps 3-5 wherever a BS date is the primary
+     text of an element. */
+  .text-bs-date {
+    line-height: 1.5;
+  }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.875rem;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+      opacity 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+    white-space: nowrap;
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-300);
+  }
+  /* Tiny press feedback — a 1px settle, not a bounce, so it never delays
+     the next keystroke or reads as sluggish during rapid entry. */
+  .btn:active {
+    transform: translateY(0.5px) scale(0.99);
+  }
+  .btn-primary {
+    background: var(--color-primary-600);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--color-primary-700);
+    box-shadow: 0 2px 6px rgba(12, 32, 56, 0.18);
+  }
+  .btn-teal {
+    background: var(--color-teal-600);
+    color: white;
+  }
+  .btn-teal:hover {
+    background: var(--color-teal-700);
+    box-shadow: 0 2px 6px rgba(10, 99, 85, 0.18);
+  }
+  .btn-brick {
+    background: var(--color-brick-600);
+    color: white;
+  }
+  .btn-brick:hover {
+    background: var(--color-brick-700);
+    box-shadow: 0 2px 6px rgba(134, 45, 33, 0.18);
+  }
+  .btn-amber {
+    background: var(--color-amber-600);
+    color: white;
+  }
+  .btn-amber:hover {
+    background: var(--color-amber-700);
+  }
+  .btn-secondary {
+    background: var(--color-surface);
+    color: var(--color-ink-700);
+    border: 1px solid var(--color-line-300);
+  }
+  .btn-secondary:hover {
+    background: var(--color-surface-muted);
+    border-color: var(--color-line-300);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink-500);
+  }
+  .btn-ghost:hover {
+    color: var(--color-ink-900);
+    background: var(--color-surface-muted);
+  }
+  .btn-sm {
+    padding: 0.3125rem 0.625rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+  }
+  .link-teal {
+    color: var(--color-teal-700);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    transition: color 150ms ease;
+    border-radius: var(--radius-md);
+  }
+  .link-teal:hover {
+    text-decoration: underline;
+  }
+  /* Redesign Step 7: .link-teal had no focus-visible treatment at all —
+     found via LockScreen.tsx's "Forgot PIN?"/"Back" links during the
+     Step 7 audit. Fixed at the class level (not inline per usage) since
+     FastEntryBar.tsx also uses .link-teal and this way its JSX needs no
+     edit at all. Same ring style already established everywhere else
+     (ring-primary-300, matching DateNav.tsx / TransactionList.tsx, the
+     project's pre-redesign baseline for this ring color). */
+  .link-teal:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-300);
+  }
+
+  /* ---- Form fields ---- */
+  .field {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line-300);
+    background: var(--color-surface);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-ink-900);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .field::placeholder {
+    color: var(--color-ink-400);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--color-primary-400);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+  }
+  /* Redesign Step 7: BsDatePicker's three <select>s use `appearance-none`
+     (to keep them visually compact and consistent with `.field`) but that
+     strips the native dropdown arrow with nothing replacing it — found
+     during Step 7's screen-by-screen audit as a genuine, pre-existing
+     affordance gap (Search, Daily Ledger's date nav, Staff, Institutions
+     all use BsDatePicker). This is additive only: a background-image
+     chevron using the same ink-400 color already used for placeholder/
+     metadata text elsewhere in this file, not a new color token. Kept as
+     its own class rather than folded into `.field` itself, since `.field`
+     is also used for plain text/number inputs where an arrow icon would
+     be wrong. */
+  .bs-date-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e99a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.3rem center;
+    background-size: 0.9rem;
+    padding-right: 1.4rem !important;
+  }
+  .field-error {
+    border-color: var(--color-brick-500);
+  }
+  .field-error:focus {
+    box-shadow: 0 0 0 3px var(--color-brick-100);
+  }
+  .field-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-ink-700);
+    margin-bottom: 0.25rem;
+  }
+  .field-hint {
+    font-size: 0.6875rem;
+    color: var(--color-brick-600);
+    margin-top: 0.125rem;
+  }
+
+  /* ---- Pills / badges ---- */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    padding: 0.125rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+  }
+  .pill-teal { background: var(--color-teal-50); color: var(--color-teal-700); }
+  .pill-brick { background: var(--color-brick-50); color: var(--color-brick-700); }
+  .pill-amber { background: var(--color-amber-50); color: var(--color-amber-700); }
+  .pill-neutral { background: var(--color-surface-sunken); color: var(--color-ink-500); }
+  /* "badge" (Step 2's control-spec list) is this same .pill component —
+     documented alias, not a second class: every existing pill/badge use
+     in the app (status tags, the App Lock "On" badge, etc.) already
+     reuses .pill/.pill-*, so nothing here is new or renamed. */
+
+  /* ---- Redesign Step 2: control specs (documented, not yet applied) ----
+     Per Step 2's own instruction, these are SPECS ONLY — sizes/states/
+     tokens for controls the app doesn't yet have a dedicated class for.
+     None of these classes is referenced by any component in this phase;
+     wiring them up is Steps 3-5's job. Controls the audit found are
+     ALREADY adequately specified are intentionally not duplicated here:
+       - select   → already reuses .field as-is (TransactionFormModal.tsx,
+                    FastEntryBar.tsx, SettingsView.tsx, BsDatePicker.tsx).
+       - textarea → already reuses .field as-is (InstitutionsView.tsx,
+                    TransactionFormModal.tsx, StaffView.tsx,
+                    FastEntryBar.tsx).
+       - search   → already reuses .field (SearchView.tsx's own search
+                    input); .dropdown-menu below is the missing piece for
+                    an autocomplete-style search result list.
+       - date control → BsDatePicker.tsx / DateNav.tsx already have their
+                    own bespoke, working calendar UI; redesigning that
+                    visual is out of scope for Steps 1-2 and premature
+                    ahead of Steps 3-5's actual screen-by-screen pass. */
+
+  /* Checkbox — a deliberately understated custom style (not the bare
+     browser default AiFallbackSection/GoogleDriveBackupSection etc.
+     currently use, and not a full custom-drawn box either — just sizing,
+     spacing and an accent-color tied to the app's own primary token so
+     it doesn't render as generic OS-blue). */
+  .checkbox {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--color-primary-600);
+  }
+
+  /* Toggle switch — a track + thumb spec for a future replacement of the
+     plain `<input type="checkbox">` used today for every Settings on/off
+     control (AI Fallback, App Lock's own sub-toggles, etc.). Structure:
+     <label class="toggle"><input type="checkbox" class="sr-only" />
+     <span class="toggle-track"><span class="toggle-thumb" /></span>
+     </label> — the checkbox itself stays the real, accessible control
+     (screen-reader/keyboard behavior unchanged); the track/thumb are
+     purely decorative siblings driven by :checked. */
+  .toggle-track {
+    display: inline-block;
+    width: 2.25rem;
+    height: 1.25rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-line-300);
+    position: relative;
+    transition: background-color 150ms ease;
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-xs);
+    transition: transform 150ms ease;
+  }
+  .toggle input:checked ~ .toggle-track {
+    background: var(--color-primary-600);
+  }
+  .toggle input:checked ~ .toggle-track .toggle-thumb {
+    transform: translateX(1rem);
+  }
+  .toggle input:focus-visible ~ .toggle-track {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-300);
+  }
+
+  /* Tab — generalizes NavList's own active/inactive treatment
+     (App.tsx) for a light-surface context (e.g. a future Settings
+     sub-section switcher), rather than inventing an unrelated look. */
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-ink-500);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+  .tab:hover {
+    color: var(--color-ink-900);
+    background: var(--color-surface-muted);
+  }
+  .tab-active {
+    color: var(--color-primary-700);
+    background: var(--color-primary-50);
+  }
+
+  /* Dropdown / autocomplete menu chrome — FastEntryBar.tsx's suggestion
+     list already has `.dropdown-pop` for its pop-in animation, but no
+     shared class for the menu surface itself (background/border/radius/
+     shadow); this is that missing piece, ready to pair with
+     `.dropdown-pop` later without changing FastEntryBar.tsx now. */
+  .dropdown-menu {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-200);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .dropdown-menu-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-ink-900);
+    cursor: pointer;
+  }
+  .dropdown-menu-item:hover,
+  .dropdown-menu-item[data-highlighted='true'] {
+    background: var(--color-surface-muted);
+  }
+
+  /* Loading spinner — no loading-state control exists anywhere in the
+     app today (checked: no `animate-spin`/spinner usage found anywhere
+     in src/); this fills that documented gap in Step 2's feedback-state
+     list. Plain CSS, no new dependency. */
+  .spinner {
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--radius-pill);
+    border: 2px solid var(--color-line-300);
+    border-top-color: var(--color-primary-600);
+    animation: spinner-spin 700ms linear infinite;
+  }
+  @keyframes spinner-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---- Redesign Step 2: feedback banners (info/success/warning/danger) ----
+     DashboardView.tsx's over-limit alert and Part A/B's advance-limit
+     warnings (FastEntryBar.tsx, StaffView.tsx's GiveAdvanceModal) each
+     currently hand-roll their own banner with an inline
+     `style={{ background: 'var(--color-*-50)' }}` plus ad hoc border-
+     color utilities, repeated per call site rather than shared. This is
+     the missing shared class those call sites could adopt later (not
+     changed in this phase) — one banner shape, four color variants
+     reusing the exact same tokens (amber/brick/teal) those call sites
+     already reach for, plus a new "info" variant on the primary token
+     for anything that isn't success/warning/danger shaped. */
+  .banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+  .banner-info {
+    background: var(--color-primary-50);
+    border-color: var(--color-primary-100);
+    color: var(--color-primary-700);
+  }
+  .banner-success {
+    background: var(--color-teal-50);
+    border-color: var(--color-teal-100);
+    color: var(--color-teal-700);
+  }
+  .banner-warning {
+    background: var(--color-amber-50);
+    border-color: var(--color-amber-100);
+    color: var(--color-amber-700);
+  }
+  .banner-danger {
+    background: var(--color-brick-50);
+    border-color: var(--color-brick-100);
+    color: var(--color-brick-700);
+  }
+
+  /* ---- Empty states ---- */
+  .empty-state {
+    text-align: center;
+    padding: 1.75rem 1rem;
+    color: var(--color-ink-400);
+    font-size: 0.8125rem;
+  }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(12, 22, 38, 0.45);
+    backdrop-filter: blur(1px);
+    padding: 0;
+    animation: modal-overlay-in 160ms ease-out;
+  }
+  .modal-panel {
+    width: 100%;
+    background: var(--color-surface);
+    border-radius: 1.125rem 1.125rem 0 0;
+    box-shadow: 0 -8px 30px rgba(12, 22, 38, 0.18);
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: modal-panel-in-mobile 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+  .modal-header {
+    padding: 1.125rem 1.25rem;
+    border-bottom: 1px solid var(--color-line-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-body {
+    padding: 1.25rem;
+  }
+
+  @keyframes modal-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes modal-panel-in-mobile {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes modal-panel-in-desktop {
+    from { transform: scale(0.97) translateY(4px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  @media (min-width: 640px) {
+    .modal-overlay {
+      align-items: center;
+      padding: 1rem;
+    }
+    .modal-panel {
+      max-width: 26rem;
+      border-radius: 1.125rem;
+      animation-name: modal-panel-in-desktop;
+    }
+  }
+
+  /* ---- Dropdowns / suggestion lists ---- */
+  .dropdown-pop {
+    animation: dropdown-pop-in 120ms ease-out;
+  }
+  @keyframes dropdown-pop-in {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Tables ---- */
+  .table-head-cell {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-ink-400);
+    border-bottom: 1px solid var(--color-line-100);
+    padding: 0.5rem;
+  }
+  .table-cell {
+    padding: 0.5rem;
+    color: var(--color-ink-700);
+  }
+
+  /* ---- Scrollbar polish (webkit) ---- */
+  .thin-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .thin-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-line-300);
+    border-radius: var(--radius-pill);
+  }
+}
+
+/* ============================================================
+   Print-only regions (Phase 4 — Staff ID Card / Summary)
+   Kept outside @layer so it always wins regardless of layer
+   ordering. Only the element carrying `.print-region` (and its
+   children) stays visible when printing; everything else in the
+   app (sidebar, nav, the rest of the profile screen behind the
+   print modal) is hidden via `visibility` — not `display` — so
+   layout never has to be recalculated, then the print region is
+   pulled out of the page flow with `position: absolute` so it
+   isn't left occupying whatever space its hidden siblings used to
+   take up. Normal on-screen rendering of `.print-region` is
+   handled by ordinary utility classes in the component; this block
+   only ever applies inside `@media print`. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-region,
+  .print-region * {
+    visibility: visible;
+  }
+  .print-region {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

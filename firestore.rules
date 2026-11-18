@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Office Daily Cash Ledger — Cloud Sync (Phase 10b)
+//
+// IMPORTANT — read this before deploying:
+// This is NOT per-office security. It only requires that a request come
+// from a signed-in (anonymous) Firebase Auth session — request.auth !=
+// null. It does NOT check that the caller "belongs to" {syncCode} in any
+// way, because there is no real per-user account system in this app (see
+// README "Cloud Sync — security model"). Anyone who has the app AND the
+// 8-character sync code for a group can read and write every document in
+// that group. Anonymous Auth here is purely a lightweight write-guard
+// (keeps totally unauthenticated/anonymous-web-crawler writes out) — it
+// is deliberately NOT the access boundary. The sync code itself is the
+// only thing standing between "in the group" and "not in the group" —
+// treat it like a shared password, not a login.
+//
+// Deploy manually via the Firebase console (Firestore > Rules) or the CLI
+// (`firebase deploy --only firestore:rules`) — this file is not applied
+// automatically by the app.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /syncGroups/{syncCode}/{table}/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

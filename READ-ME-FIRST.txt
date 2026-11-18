@@ -1,0 +1,114 @@
+====================================================
+ OFFICE DAILY CASH LEDGER - HOW TO USE THIS FOLDER
+====================================================
+
+You only need to do ONE thing: double-click START-HERE.bat
+
+It will automatically:
+  - Install Node.js if you don't have it
+  - Install everything the app needs
+  - Build the app
+  - Install the Firebase tool
+  - Log you into Firebase
+  - Connect this folder to your Firebase project
+  - Put the app online and give you a live web link
+
+It's safe to double-click START-HERE.bat as many times as you
+want - it skips anything already done and just continues from
+wherever it left off.
+
+
+------------------------------------------------
+DO YOU WANT CLOUD SYNC (same data on multiple devices)?
+------------------------------------------------
+
+If NO - you just want the app on one device:
+  Just double-click START-HERE.bat. Nothing else needed.
+  Skip everything below.
+
+If YES - you want the same data synced across devices:
+  You need to do a few things in your browser FIRST, before
+  running START-HERE.bat. This part can't be automated because
+  it requires your own Google sign-in and choices.
+
+  1. Go to https://console.firebase.google.com in your browser.
+
+  2. Click "Add project" (or "Create a project"). Name it
+     something like "Office Cash Ledger". This must be a NEW,
+     separate project - don't reuse one from another app.
+
+  3. Once created, in the left menu click:
+       Build > Firestore Database > "Create database"
+     Choose "Start in production mode", pick any region, click
+     Enable.
+
+  4. Then in the left menu click:
+       Build > Authentication > "Get started"
+     Under "Sign-in method", click "Anonymous" and turn it ON,
+     then Save.
+
+  5. Click the gear icon (top left) > Project Settings >
+     General tab. Under "Your apps", click the </> icon to
+     register a web app. Give it any nickname. It will show you
+     a block of text with values like:
+       apiKey: "...."
+       authDomain: "...."
+       projectId: "...."
+       storageBucket: "...."
+       messagingSenderId: "...."
+       appId: "...."
+     Keep this page open.
+
+  6. In THIS folder, find the file called .env.example
+     Make a COPY of it and rename the copy to exactly:  .env
+     (just ".env", nothing before the dot)
+
+  7. Open the new .env file with Notepad. For each line, paste
+     in the matching value from step 5. For example:
+       VITE_FIREBASE_API_KEY=paste the apiKey value here
+       VITE_FIREBASE_PROJECT_ID=paste the projectId value here
+     ...and so on for every line. No quotes, no extra spaces.
+     Save the file.
+
+  8. NOW double-click START-HERE.bat. It will pick up your .env
+     settings automatically when it builds the app.
+
+
+------------------------------------------------
+WHAT TO EXPECT WHILE IT RUNS
+------------------------------------------------
+
+- The first run may take several minutes (downloading things).
+- If it needs to install Node.js, you may need to close the
+  window and double-click START-HERE.bat one more time - it
+  will tell you clearly if this is needed.
+- A browser window will open once, asking you to sign into
+  Google/Firebase - just approve it and come back to the black
+  window.
+- Near the end, a list of your Firebase projects will appear -
+  use the arrow keys to select the right one and press Enter.
+- Two Yes/No questions may appear about Firebase collecting
+  anonymous usage data - either answer is fine, it doesn't
+  affect the app.
+- At the very end it prints a "Hosting URL" - that's your app's
+  live web address. Open it on your phone and choose
+  "Add to Home Screen" to install it like a normal app.
+
+
+------------------------------------------------
+PUBLISHING A LATER UPDATE
+------------------------------------------------
+
+When you get a newer, verified version of this app: replace the
+files in this folder with the new ones (keep your own .env file
+if you have one), then just double-click START-HERE.bat again.
+
+
+------------------------------------------------
+SOMETHING WENT WRONG?
+------------------------------------------------
+
+The window will pause and show you the actual error message
+in red/plain text near the top - take a screenshot of it and
+ask for help with exactly what it says. It will not close on
+its own after an error, so you'll always be able to read it.
