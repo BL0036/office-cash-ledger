@@ -1460,12 +1460,12 @@ function GoogleDriveBackupSection() {
             </button>
           </div>
           <p className="text-xs text-ink-400">
-            {status.lastBackupAt
+            {status.lastSuccessAt
               ? tr(
-                  `पछिल्लो ब्याकअप: ${new Date(status.lastBackupAt).toLocaleString()}`,
-                  `Last backup: ${new Date(status.lastBackupAt).toLocaleString()}`,
+                  `पछिल्लो सफल ब्याकअप: ${new Date(status.lastSuccessAt).toLocaleString()}`,
+                  `Last successful backup: ${new Date(status.lastSuccessAt).toLocaleString()}`,
                 )
-              : tr('अहिलेसम्म कुनै ब्याकअप भएको छैन।', 'No backup yet.')}
+              : tr('अहिलेसम्म कुनै सफल ब्याकअप भएको छैन।', 'No successful backup yet.')}
             {status.lastError && (
               <span className="text-brick-600"> — {status.lastError}</span>
             )}

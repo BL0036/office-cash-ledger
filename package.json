@@ -23,7 +23,8 @@
     "test:sync": "firebase emulators:exec --only firestore,auth \"tsx scripts/test-sync.ts\"",
     "test:app-lock": "tsx scripts/test-app-lock.ts",
     "test:drive-backup": "tsx scripts/test-drive-backup.ts",
-    "test:all": "npm run test:ledger && npm run test:integration && npm run test:staff-vehicles && npm run test:staff-profile && npm run test:fastentry && npm run test:fastentry-suggestions && npm run test:fastentry-smart-entry && npm run test:fastentry-enter && npm run test:batch-entry && npm run test:calendar && npm run test:owner-data && npm run test:ai-fallback && npm run test:app-lock && npm run test:drive-backup && npm run test:sync"
+    "test:backup-due": "tsx scripts/test-backup-due.ts",
+    "test:all": "npm run test:ledger && npm run test:integration && npm run test:staff-vehicles && npm run test:staff-profile && npm run test:fastentry && npm run test:fastentry-suggestions && npm run test:fastentry-smart-entry && npm run test:fastentry-enter && npm run test:batch-entry && npm run test:calendar && npm run test:owner-data && npm run test:ai-fallback && npm run test:app-lock && npm run test:drive-backup && npm run test:backup-due && npm run test:sync"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",

@@ -114,13 +114,19 @@ export const MIN_AUTO_BACKUP_INTERVAL_MS = 60 * 60 * 1000; // ~hourly
 // for expiring mid-request.
 const TOKEN_SAFETY_MARGIN_MS = 2 * 60 * 1000;
 
+/** A connected Drive backup is "due" once this long has passed without a backup that actually uploaded. */
+export const BACKUP_DUE_AFTER_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export type DriveBackupResult =
   | { ok: true; skipped?: false }
   | { ok: false; skipped: true; reason: string } // declined to even attempt (not connected, too soon, no valid cached token in a non-interactive context) - not an error
   | { ok: false; skipped?: false; reason: string }; // a real attempt was made and it failed
 
 export interface DriveBackupStatus {
+  /** Last attempt recorded by the auto-backup rate limiter (may not have uploaded anything). */
   lastBackupAt: number | null;
+  /** Last backup that really finished uploading. Show THIS to the owner. */
+  lastSuccessAt: number | null;
   lastError: string | null;
 }
 
@@ -131,7 +137,18 @@ export function isConnected(): boolean {
 
 export function getLastBackupStatus(): DriveBackupStatus {
   const s = getGoogleDriveBackupSettings();
-  return { lastBackupAt: s.lastBackupAt, lastError: s.lastError };
+  return { lastBackupAt: s.lastBackupAt, lastSuccessAt: s.lastSuccessAt, lastError: s.lastError };
+}
+
+/**
+ * True when Drive backup is connected AND no backup has really uploaded in the
+ * last BACKUP_DUE_AFTER_MS (or none ever has). Pure read of local settings -
+ * no network. Drives the "backup is due" banner. Accepts `now` for tests.
+ */
+export function isBackupDue(now: number = Date.now()): boolean {
+  if (!isGoogleDriveConnected()) return false;
+  const last = getGoogleDriveBackupSettings().lastSuccessAt;
+  return last == null || now - last >= BACKUP_DUE_AFTER_MS;
 }
 
 // ---------------------------------------------------------------------
@@ -300,6 +317,7 @@ export async function disconnect(): Promise<void> {
     folderId: null,
     fileId: null,
     lastBackupAt: settings.lastBackupAt,
+    lastSuccessAt: settings.lastSuccessAt,
     lastError: null,
   });
   cachedTokenClient = null;
@@ -417,7 +435,8 @@ async function performBackup(interactive: boolean): Promise<DriveBackupResult> {
     const folderId = await findOrCreateFolderId(token);
     const existingFileId = await findExistingFileId(token, folderId);
     const fileId = await uploadBackupContent(token, folderId, existingFileId, content);
-    patchGoogleDriveBackupSettings({ fileId, lastBackupAt: Date.now(), lastError: null });
+    const finishedAt = Date.now();
+    patchGoogleDriveBackupSettings({ fileId, lastBackupAt: finishedAt, lastSuccessAt: finishedAt, lastError: null });
     return { ok: true };
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'Google Drive backup failed.';

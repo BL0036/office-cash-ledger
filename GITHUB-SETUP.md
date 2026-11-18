@@ -66,3 +66,13 @@ and republishes automatically. Every version stays in GitHub's history, so the
   (they see an empty app; your data stays in your browser or your sync group).
 - **Want the code private?** Keep it private on GitHub purely as a backup and keep
   hosting on Firebase. Pages from a private repo needs a paid plan.
+
+## 8. Install as an app and the 24-hour Drive reminder
+
+- **Android (Chrome):** open the link, tap the three dots, then **Install app** (or Add to Home screen).
+- **iPhone (Safari):** Share, then **Add to Home Screen**. Do this BEFORE entering real data - the
+  Home Screen app keeps its own storage, separate from Safari tabs.
+- **PC (Chrome/Edge):** click the install icon in the address bar.
+- After the first visit the app can open with no internet. New versions arrive on the next online open.
+- If Google Drive backup is connected and nothing has uploaded for 24 hours, a yellow bar appears at
+  the top: tap **Back up now**. See CHANGELOG-pwa-and-backup-due.md for the limits.

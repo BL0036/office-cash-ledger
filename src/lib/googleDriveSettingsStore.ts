@@ -40,8 +40,10 @@ export interface GoogleDriveBackupSettings {
   folderId: string | null;
   /** The app-created "office-cash-ledger-backup.json" file's Drive file ID inside that folder — the ONE continuously-updated backup file (constraint #8: never a new dated file per backup). */
   fileId: string | null;
-  /** Epoch ms of the last successful backup, or null if none yet. */
+  /** Epoch ms of the last backup ATTEMPT that the auto-backup rate limiter recorded (it is written before the network work, so a skipped or failed silent attempt also moves it). Used only to throttle auto-backup; do not show it to the owner as "last backup" — use lastSuccessAt for that. */
   lastBackupAt: number | null;
+  /** Epoch ms of the last backup that really finished uploading to Drive, or null if none yet. This is the value the UI and the 24-hour "backup due" notice rely on. */
+  lastSuccessAt: number | null;
   /** Human-readable reason for the most recent failure, or null if the last attempt (if any) succeeded. Cleared on the next successful attempt. */
   lastError: string | null;
 }
@@ -54,6 +56,7 @@ const DEFAULT_SETTINGS: GoogleDriveBackupSettings = {
   folderId: null,
   fileId: null,
   lastBackupAt: null,
+  lastSuccessAt: null,
   lastError: null,
 };
 
@@ -78,6 +81,7 @@ export function getGoogleDriveBackupSettings(): GoogleDriveBackupSettings {
       folderId: typeof parsed.folderId === 'string' && parsed.folderId !== '' ? parsed.folderId : null,
       fileId: typeof parsed.fileId === 'string' && parsed.fileId !== '' ? parsed.fileId : null,
       lastBackupAt: typeof parsed.lastBackupAt === 'number' ? parsed.lastBackupAt : null,
+      lastSuccessAt: typeof parsed.lastSuccessAt === 'number' ? parsed.lastSuccessAt : null,
       lastError: typeof parsed.lastError === 'string' && parsed.lastError !== '' ? parsed.lastError : null,
     };
   } catch {

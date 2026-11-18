@@ -36,6 +36,7 @@ import { DashboardView } from './components/DashboardView';
 import { useEscapeToClose } from './hooks/useEscapeToClose';
 import { LanguageProvider, useLanguage } from './lib/i18n';
 import { AppLockGate } from './components/AppLockGate';
+import { DriveBackupDueBanner } from './components/DriveBackupDueBanner';
 import { useAppLockState } from './hooks/useAppLock';
 import { lockNow } from './lib/appLock';
 import {
@@ -349,8 +350,13 @@ function AppShell() {
     // finish, which is an accepted, documented limitation (see
     // CHANGELOG) rather than something worth blocking unload for.
     function onVisibilityOrHide() {
-      if (document.visibilityState === 'hidden') void autoBackupTick();
+      // Hidden: best-effort backup on the way out. Visible: when the app is
+      // opened again, try a silent backup at once (it only goes ahead while
+      // Google's short-lived login is still valid; otherwise the "backup is
+      // due" banner asks for one tap after 24 hours).
+      void autoBackupTick();
     }
+    void autoBackupTick(); // also once when the app first opens
     function onPageHide() {
       void autoBackupTick();
     }
@@ -448,6 +454,7 @@ function AppShell() {
       )}
 
       <main className="flex-1 min-w-0">
+        <DriveBackupDueBanner />
         {!ready ? (
           <div className="flex items-center justify-center gap-2 p-8 text-sm text-ink-400">
             <span className="spinner" aria-hidden="true" />
