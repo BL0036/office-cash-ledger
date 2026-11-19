@@ -208,8 +208,19 @@ async function main() {
   const categories = await db.categories.toArray();
   const expenseHeads = await db.expenseHeads.toArray();
   const cashInTypes = await db.cashInTypes.toArray();
-  assertEqual('8 categories present (matches the brief)', categories.length, 8);
-  assertEqual('6 cash-in types present (matches the brief)', cashInTypes.length, 6);
+  // The original brief had 8 categories and 6 cash-in types. The owner later asked
+  // for three built-in options (Cash In "Goods Sold"; Cash Out categories "Goods
+  // Purchase" and "Transport Fare / Gadi Bhada"), so the built-in totals are now
+  // 8 + 2 = 10 categories and 6 + 1 = 7 cash-in types. The original 8 / 6 are
+  // all still present - checked by name just below.
+  assertEqual('10 categories present (original 8 + Goods Purchase + Transport Fare)', categories.length, 10);
+  assertEqual('7 cash-in types present (original 6 + Goods Sold)', cashInTypes.length, 7);
+  const originalCategoryNames = ['Food', 'Travel & Fuel', 'Office', 'Stationery', 'Medical & Supplies', 'Vehicle Maintenance', 'Staff', 'Savings & Financial'];
+  assertEqual(
+    'all 8 original categories are still present',
+    originalCategoryNames.every((n) => categories.some((c) => c.name === n)),
+    true,
+  );
   assertEqual(
     '7 expense heads present (brief says 6 — see the file header note on the extra unconditional "Deposit" head; not silently forced to 6)',
     expenseHeads.length,

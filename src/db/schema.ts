@@ -803,6 +803,65 @@ export async function seedReferenceData(): Promise<void> {
   await ensureDepositExpenseHead();
   await ensureFinancialWithdrawalCashInType();
   await ensureVehicleServiceExpenseHead();
+  await ensureGoodsAndTransportOptions();
+}
+
+// Built-in options added for trading businesses. Fixed ids (not random) so that
+// two devices using Cloud Sync each "create" the SAME row and sync merges them
+// instead of showing every option twice.
+const GOODS_SOLD_CASH_IN_TYPE_ID = 'builtin-cashin-goods-sold';
+const GOODS_PURCHASE_CATEGORY_ID = 'builtin-category-goods-purchase';
+const TRANSPORT_FARE_CATEGORY_ID = 'builtin-category-transport-fare';
+
+/**
+ * Make sure these exist, on every app start (same backfill precedent as the
+ * ensure* functions below, so an already-installed app gets them too):
+ *   - Cash In source  "Goods Sold"
+ *   - Cash Out category "Goods Purchase"
+ *   - Cash Out category "Transport Fare / Gadi Bhada"
+ * Never duplicates: if a row with the same id OR the same name (any
+ * capitalisation) already exists - including one the owner typed in Settings,
+ * or one they switched off - nothing is added. Both new categories use
+ * 'operating_expense', the same bucket as ordinary day-to-day cash-out.
+ */
+async function ensureGoodsAndTransportOptions(): Promise<void> {
+  await db.transaction('rw', db.categories, db.cashInTypes, async () => {
+    const allCategories = await db.categories.toArray();
+    const allCashInTypes = await db.cashInTypes.toArray();
+    const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+    const categoriesToEnsure: { id: string; name: string }[] = [
+      { id: GOODS_PURCHASE_CATEGORY_ID, name: 'Goods Purchase' },
+      { id: TRANSPORT_FARE_CATEGORY_ID, name: 'Transport Fare / Gadi Bhada' },
+    ];
+    for (const wanted of categoriesToEnsure) {
+      const exists = allCategories.some((c) => c.id === wanted.id || sameName(c.name, wanted.name));
+      if (exists) continue;
+      await db.categories.add({
+        id: wanted.id,
+        name: wanted.name,
+        direction: 'cash_out',
+        flowClass: 'operating_expense',
+        isCustom: false,
+        active: true,
+        updatedAt: Date.now(),
+      });
+    }
+
+    const goodsSoldExists = allCashInTypes.some(
+      (t) => t.id === GOODS_SOLD_CASH_IN_TYPE_ID || sameName(t.name, 'Goods Sold'),
+    );
+    if (!goodsSoldExists) {
+      await db.cashInTypes.add({
+        id: GOODS_SOLD_CASH_IN_TYPE_ID,
+        name: 'Goods Sold',
+        flowClass: 'other_movement',
+        isCustom: false,
+        active: true,
+        updatedAt: Date.now(),
+      });
+    }
+  });
 }
 
 /**

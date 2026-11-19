@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { type Direction, type Transaction } from '../types';
 import { addTransaction, editTransaction, type NewTransactionInput } from '../lib/ledger';
@@ -47,6 +47,11 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // A ref (not just the `saving` state) so two Enter presses in the same instant
+  // can never both get past the guard and save the entry twice.
+  const savingLockRef = useRef(false);
+  const descriptionRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
 
   const expenseHeads = useExpenseHeadsForCategory(categoryId);
 
@@ -91,17 +96,44 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
     }
   }, [expenseHeads, expenseHeadId]);
 
+  // Enter works like Tab: it moves to the next field, and on the LAST field it
+  // saves. (Without this, Enter inside Description or Amount saved the form
+  // straight away, half filled.) Buttons keep their normal Enter behaviour, and
+  // Shift+Enter still starts a new line inside Notes.
+  function handleFormKeyDown(e: React.KeyboardEvent<HTMLFormElement>) {
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+    const target = e.target as HTMLElement;
+    const tag = target.tagName;
+    if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
+    if (tag === 'TEXTAREA' && e.shiftKey) return;
+    e.preventDefault();
+    const fields = Array.from(
+      e.currentTarget.querySelectorAll<HTMLElement>('input, select, textarea'),
+    ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && el.offsetParent !== null);
+    const index = fields.indexOf(target);
+    if (index >= 0 && index < fields.length - 1) {
+      const next = fields[index + 1];
+      next.focus();
+      if (next instanceof HTMLInputElement && next.type === 'text') next.select();
+    } else if (!savingLockRef.current) {
+      e.currentTarget.requestSubmit();
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (savingLockRef.current) return; // a quick double Enter / double click must not save twice
     setError(null);
 
     const amountPaisa = parseRupeeInputToPaisa(amountInput);
     if (amountPaisa == null || amountPaisa <= 0) {
       setError(tr('शून्यभन्दा बढी मान्य रकम राख्नुहोस्।', 'Enter a valid amount greater than zero.'));
+      amountRef.current?.focus();
       return;
     }
     if (!description.trim()) {
       setError(tr('विवरण आवश्यक छ।', 'Description is required.'));
+      descriptionRef.current?.focus();
       return;
     }
     if (!isCashIn && categoryId == null) {
@@ -113,6 +145,7 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
       return;
     }
 
+    savingLockRef.current = true;
     setSaving(true);
     try {
       if (editing) {
@@ -147,6 +180,10 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
       }
       onClose();
     } catch (err) {
+      // Only a FAILED save unlocks the form again. After a successful save the
+      // popup is closing, and it must stay locked until it is gone so that extra
+      // quick Enter presses cannot save the same entry a second time.
+      savingLockRef.current = false;
       setError(err instanceof Error ? err.message : tr('केही गडबड भयो।', 'Something went wrong.'));
     } finally {
       setSaving(false);
@@ -169,7 +206,7 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="modal-body">
           <div>
             <label className="field-label">{tr('विवरण', 'Description')}</label>
             <input
@@ -179,6 +216,7 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
               className="field"
               placeholder={tr('जस्तै: कर्मचारीको लागि खाजा', 'e.g. Lunch for staff')}
               autoFocus
+              ref={descriptionRef}
             />
           </div>
 
@@ -191,6 +229,7 @@ export function TransactionFormModal({ date, direction, editing, onClose }: Prop
               onChange={(e) => setAmountInput(e.target.value)}
               className="field figures"
               placeholder="0.00"
+              ref={amountRef}
             />
           </div>
 
