@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { LedgerDay } from '../types';
 import { formatPaisaAsRupees, parseRupeeInputToPaisa } from '../lib/money';
-import { setManualOpeningBalance } from '../lib/ledger';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { getEarliestLedgerDate, setManualOpeningBalance } from '../lib/ledger';
 import { useLanguage } from '../lib/i18n';
 
 interface Props {
@@ -34,7 +35,10 @@ export function BalanceSummary({ date, day }: Props) {
   const closing = day?.closingBalancePaisa ?? 0;
   const cashIn = day?.cashInPaisa ?? 0;
   const cashOut = day?.cashOutPaisa ?? 0;
-  const canEditOpening = day?.isManualOpening ?? false;
+  // Only the first day of the whole ledger has a hand-set opening; every later
+  // day continues from the previous day's closing.
+  const earliestDate = useLiveQuery(() => getEarliestLedgerDate(), []);
+  const canEditOpening = earliestDate !== undefined && earliestDate === date;
 
   function startEdit() {
     setOpeningInput(String(opening / 100));
@@ -109,6 +113,11 @@ export function BalanceSummary({ date, day }: Props) {
           ) : (
             <p className="mt-0.5 text-base sm:text-lg font-semibold text-ink-900 figures">
               {formatPaisaAsRupees(opening)}
+            </p>
+          )}
+          {!canEditOpening && earliestDate && (
+            <p className="mt-0.5 text-[10px] text-ink-500">
+              {t('अघिल्लो दिनको अन्त्यबाट', "from previous day's closing")}
             </p>
           )}
         </div>

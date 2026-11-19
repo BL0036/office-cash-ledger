@@ -218,15 +218,48 @@ export async function softDeleteTransaction(id: string): Promise<void> {
   });
 }
 
-/** Set the manual opening balance for Day 1 (only valid while isManualOpening). */
+/** The date of the earliest LedgerDay row (the start of the whole chain), or null if there are none. */
+export async function getEarliestLedgerDate(): Promise<string | null> {
+  const first = await db.ledgerDays.orderBy('date').first();
+  return first ? first.date : null;
+}
+
+/**
+ * Set the one-time starting (opening) balance of the ledger.
+ *
+ * Only the EARLIEST day in the ledger can have its opening set by hand -
+ * every later day's opening is the previous day's closing. recalcCascadeFrom
+ * only honours a manual opening on the earliest row, so a manual opening
+ * typed on any later day would be silently thrown away; we therefore refuse
+ * that case with a clear message instead of "saving" something that does not
+ * stick.
+ *
+ * If the earliest row is not currently flagged as the manual anchor (this
+ * happens when someone browses to an earlier date after Day 1 already
+ * existed, which creates an earlier row), editing it here is an explicit
+ * request to re-anchor the ledger there: the flag moves to the earliest day
+ * and the typed amount becomes its opening. The old anchor's own opening was
+ * already being ignored by the cascade, so no effective balance is lost.
+ */
 export async function setManualOpeningBalance(date: string, openingPaisa: number): Promise<void> {
   await db.transaction('rw', db.transactions, db.ledgerDays, async () => {
     const day = await db.ledgerDays.get(date);
     if (!day) throw new Error(`LedgerDay for ${date} not found`);
-    if (!day.isManualOpening) {
-      throw new Error('Only Day 1 (isManualOpening) can have its opening balance edited directly');
+    const earliest = await db.ledgerDays.orderBy('date').first();
+    if (!earliest || earliest.date !== date) {
+      throw new Error(
+        `Only the first day of the ledger (${earliest ? earliest.date : date}) can have its opening balance set. Later days continue from the previous day's closing.`,
+      );
     }
-    await db.ledgerDays.put({ ...day, openingBalancePaisa: openingPaisa });
+    if (!day.isManualOpening) {
+      const oldAnchors = await db.ledgerDays.filter((d) => d.isManualOpening).toArray();
+      for (const old of oldAnchors) {
+        await db.ledgerDays.put({ ...old, isManualOpening: false });
+      }
+      await db.ledgerDays.put({ ...day, isManualOpening: true, openingBalancePaisa: openingPaisa });
+    } else {
+      await db.ledgerDays.put({ ...day, openingBalancePaisa: openingPaisa });
+    }
     await recalcCascadeFrom(date);
   });
 }
